@@ -1,4 +1,4 @@
-package np.com.oskarshrestha.springsecurityclient.entity;
+package np.com.oskarshrestha.oauthserver.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

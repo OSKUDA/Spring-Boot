@@ -16,6 +16,14 @@
 
     <modules>
         <module>spring-security-client</module>
+        <module>Oauth-authorization-server</module>
     </modules>
+    <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>com.mastfrog.builder</groupId>-->
+<!--            <artifactId>builder-builder-parent</artifactId>-->
+<!--            <version>1.0.7</version>-->
+<!--        </dependency>-->
+    </dependencies>
 
 </project>
