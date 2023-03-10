@@ -10,15 +10,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 @RestController
-public class RegistrationController {
+public class AuthenticationController {
 
     @Autowired
     private UserService userService;
 
     @PostMapping("/api/v1/auth/register")
     public ResponseEntity<RegistrationResponse> registerUser(@RequestBody UserRegisterRequest userRegisterRequest){
-        User user = userService.registerUser(userRegisterRequest);
-        RegistrationResponse registrationResponse = new RegistrationResponse("SUCCESS");
-        return ResponseEntity.ok(registrationResponse);
+        return ResponseEntity.ok(userService.registerUser(userRegisterRequest));
     }
 }

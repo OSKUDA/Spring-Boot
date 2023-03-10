@@ -2,6 +2,7 @@ package np.com.oskarshrestha.loginregistration.service;
 
 import np.com.oskarshrestha.loginregistration.entity.Role;
 import np.com.oskarshrestha.loginregistration.entity.User;
+import np.com.oskarshrestha.loginregistration.model.RegistrationResponse;
 import np.com.oskarshrestha.loginregistration.model.UserRegisterRequest;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,7 @@ public class UserServiceImpl implements UserService{
     private UserRepository userRepository;
 
     @Override
-    public User registerUser(UserRegisterRequest userRegisterRequest) {
+    public RegistrationResponse registerUser(UserRegisterRequest userRegisterRequest) {
         User user = new User();
         user.setFirstName(userRegisterRequest.getFirstName());
         user.setLastName(userRegisterRequest.getLastName());
@@ -28,6 +29,6 @@ public class UserServiceImpl implements UserService{
         user.setEnabled(false);
 
         userRepository.save(user);
-        return user;
+        return RegistrationResponse.builder().token("SUCCESS").user(user).build();
     }
 }
