@@ -10,8 +10,8 @@ import np.com.oskarshrestha.loginregistration.entity.User;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegistrationResponse {
+public class RegisterUserResponse {
+    private User user;
+    private String token;
     private boolean existingUser;
-
-    private boolean registrationSuccess;
 }

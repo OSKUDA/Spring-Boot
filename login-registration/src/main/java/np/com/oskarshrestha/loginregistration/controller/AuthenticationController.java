@@ -28,19 +28,31 @@ public class AuthenticationController {
             @RequestBody UserRegisterRequest userRegisterRequest,
             final HttpServletRequest request
     ) {
-        RegistrationResponse registrationResponse = userService.registerUser(userRegisterRequest);
+        RegisterUserResponse registerUserResponse = userService.registerUser(userRegisterRequest);
 
         // check if the user has already registered
-        if (registrationResponse.isExistingUser()) {
-            return ResponseEntity.ok(registrationResponse);
+        if (registerUserResponse.isExistingUser()) {
+            return ResponseEntity.ok(RegistrationResponse
+                    .builder()
+                    .existingUser(true)
+                    .build()
+            );
         }
 
         // continue creating user
-        User user = registrationResponse.getUser();
+        User user = registerUserResponse.getUser();
         System.out.println(applicationEventPublisher.toString());
-        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(user, generateApplicationUrl(request)));
+        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
+                user,
+                generateApplicationUrl(request)
+        ));
 
-        return ResponseEntity.ok(registrationResponse);
+        return ResponseEntity.ok(RegistrationResponse
+                .builder()
+                .registrationSuccess(true)
+                .existingUser(false)
+                .build()
+        );
     }
 
     @GetMapping("/api/v1/auth/verifyEmail")
@@ -77,8 +89,8 @@ public class AuthenticationController {
         }
 
         applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
-                user.get(),
-                generateApplicationUrl(request)
+                        user.get(),
+                        generateApplicationUrl(request)
                 )
         );
         return ResponseEntity.ok(ResendVerifyEmailResponse.builder().resendVerifyEmailStatus(ResendVerifyEmailStatus.SUCCESS).build());

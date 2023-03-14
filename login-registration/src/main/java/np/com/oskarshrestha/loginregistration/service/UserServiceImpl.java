@@ -1,13 +1,10 @@
 package np.com.oskarshrestha.loginregistration.service;
 
 import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
+import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
 import np.com.oskarshrestha.loginregistration.util.Role;
 import np.com.oskarshrestha.loginregistration.entity.User;
-import np.com.oskarshrestha.loginregistration.model.AuthenticationResponse;
-import np.com.oskarshrestha.loginregistration.model.RegistrationResponse;
-import np.com.oskarshrestha.loginregistration.model.UserAuthenticationRequest;
-import np.com.oskarshrestha.loginregistration.model.UserRegisterRequest;
 import np.com.oskarshrestha.loginregistration.repository.EmailVerificationTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,9 +36,12 @@ public class UserServiceImpl implements UserService {
     private AuthenticationManager authenticationManager;
 
     @Override
-    public RegistrationResponse registerUser(UserRegisterRequest userRegisterRequest) {
+    public RegisterUserResponse registerUser(UserRegisterRequest userRegisterRequest) {
         if(userRepository.existsByEmail(userRegisterRequest.getEmail())){
-         return RegistrationResponse.builder().existingUser(true).build();
+         return RegisterUserResponse
+                 .builder()
+                 .existingUser(true)
+                 .build();
         }
 
         User user = new User();
@@ -56,10 +56,11 @@ public class UserServiceImpl implements UserService {
 
         String jwtToken = jwtService.generateToken(user);
 
-        return RegistrationResponse
+        return RegisterUserResponse
                 .builder()
                 .token(jwtToken)
                 .user(user)
+                .existingUser(false)
                 .build();
     }
 
