@@ -4,14 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import np.com.oskarshrestha.loginregistration.entity.User;
+import np.com.oskarshrestha.loginregistration.util.ResendVerifyEmailStatus;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegistrationResponse {
-    private boolean existingUser;
-
-    private boolean registrationSuccess;
+public class ResendVerifyEmailResponse {
+    private ResendVerifyEmailStatus resendVerifyEmailStatus;
 }

@@ -2,7 +2,6 @@ package np.com.oskarshrestha.loginregistration.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,11 +12,9 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class EmailVerificationToken {
-
+public class ForgetPasswordToken {
     // The expiration time of the link is 10 minutes
     private static final int EXPIRATION_TIME = 10;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +25,7 @@ public class EmailVerificationToken {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
-    public EmailVerificationToken(User user, String token){
+    public ForgetPasswordToken(User user, String token) {
         super();
         this.token = token;
         this.user = user;

@@ -1,6 +1,5 @@
 package np.com.oskarshrestha.loginregistration.model;
 
-import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +10,6 @@ import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VerifyRegistrationResponse {
+public class VerifyEmailResponse {
     private EmailVerificationTokenStatus emailVerificationTokenStatus;
 }
