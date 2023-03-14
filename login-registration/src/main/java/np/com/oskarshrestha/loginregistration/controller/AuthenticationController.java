@@ -3,11 +3,10 @@ package np.com.oskarshrestha.loginregistration.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import np.com.oskarshrestha.loginregistration.entity.User;
 import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
+import np.com.oskarshrestha.loginregistration.event.SendForgetPasswordEmailEvent;
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.service.UserService;
-import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
-import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
-import np.com.oskarshrestha.loginregistration.util.ResendVerifyEmailStatus;
+import np.com.oskarshrestha.loginregistration.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +41,6 @@ public class AuthenticationController {
 
         // continue creating user
         User user = registerUserResponse.getUser();
-        System.out.println(applicationEventPublisher.toString());
         applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
                 user,
                 generateApplicationUrl(request)
@@ -108,7 +106,7 @@ public class AuthenticationController {
     @PostMapping("/api/v1/auth/changePassword")
     public ResponseEntity<ChangePasswordResponse> changePassword(
             @RequestBody ChangePasswordRequest changePasswordRequest
-    ){
+    ) {
         ChangeUserPasswordStatus changeUserPasswordStatus = userService.changeUserPassword(
                 changePasswordRequest.getEmail(),
                 changePasswordRequest.getOldPassword(),
@@ -117,6 +115,46 @@ public class AuthenticationController {
         return ResponseEntity.ok(ChangePasswordResponse
                 .builder()
                 .changeUserPasswordStatus(changeUserPasswordStatus)
+                .build()
+        );
+    }
+
+    @GetMapping("/api/v1/auth/forgetPassword")
+    public ResponseEntity<ForgetPasswordResponse> forgetPassword(
+            @RequestParam("email") String email,
+            final HttpServletRequest request
+    ) {
+        Optional<User> user = userService.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.ok(ForgetPasswordResponse
+                    .builder()
+                    .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.EMAIL_NOT_FOUND)
+                    .build()
+            );
+        }
+
+        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
+                user.get(),
+                generateApplicationUrl(request)
+        ));
+
+        return ResponseEntity.ok(ForgetPasswordResponse
+                .builder()
+                .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.SENT)
+                .build()
+        );
+    }
+
+    @PostMapping("/api/v1/auth/resetPassword")
+    public ResponseEntity<ResetPasswordResponse> resetPassword(
+            @RequestParam("token") String token,
+            @RequestBody ResetPasswordRequest resetPasswordRequest
+    ){
+        ResetPasswordResponseStatus resetPasswordResponseStatus = userService.resetUserPassword(token,resetPasswordRequest.getPassword());
+        return ResponseEntity.ok(ResetPasswordResponse
+                .builder()
+                .resetPasswordResponseStatus(resetPasswordResponseStatus)
                 .build()
         );
     }

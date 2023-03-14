@@ -4,6 +4,7 @@ import np.com.oskarshrestha.loginregistration.entity.User;
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
 import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
+import np.com.oskarshrestha.loginregistration.util.ResetPasswordResponseStatus;
 
 import java.util.Optional;
 
@@ -19,4 +20,8 @@ public interface UserService {
     public Optional<User> getUserByEmail(String email);
 
     public ChangeUserPasswordStatus changeUserPassword(String email, String oldPassword, String newPassword);
+
+    public void saveForgetPasswordToken(String token, User user);
+
+    public ResetPasswordResponseStatus resetUserPassword(String token,String password);
 }

@@ -1,16 +1,16 @@
 package np.com.oskarshrestha.loginregistration.service;
 
 import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
+import np.com.oskarshrestha.loginregistration.entity.ForgetPasswordToken;
 import np.com.oskarshrestha.loginregistration.entity.User;
 import np.com.oskarshrestha.loginregistration.model.AuthenticationResponse;
 import np.com.oskarshrestha.loginregistration.model.RegisterUserResponse;
 import np.com.oskarshrestha.loginregistration.model.UserAuthenticationRequest;
 import np.com.oskarshrestha.loginregistration.model.UserRegisterRequest;
 import np.com.oskarshrestha.loginregistration.repository.EmailVerificationTokenRepository;
+import np.com.oskarshrestha.loginregistration.repository.ForgetPasswordTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
-import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
-import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
-import np.com.oskarshrestha.loginregistration.util.Role;
+import np.com.oskarshrestha.loginregistration.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,6 +31,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private EmailVerificationTokenRepository emailVerificationTokenRepository;
+
+    @Autowired
+    private ForgetPasswordTokenRepository forgetPasswordTokenRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -140,6 +143,49 @@ public class UserServiceImpl implements UserService {
         user.get().setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user.get());
         return ChangeUserPasswordStatus.SUCCESS;
+    }
+
+    @Override
+    public void saveForgetPasswordToken(String token, User user) {
+        ForgetPasswordToken forgetPasswordToken = forgetPasswordTokenRepository.findByUser(user);
+
+        // create new entry
+        if(forgetPasswordToken == null){
+            forgetPasswordToken = new ForgetPasswordToken(user, token);
+            forgetPasswordTokenRepository.save(forgetPasswordToken);
+            return;
+        }
+
+        // update existing entry
+        forgetPasswordToken.setToken(token);
+        forgetPasswordToken.setExpirationTime();
+        forgetPasswordTokenRepository.save(forgetPasswordToken);
+    }
+
+    @Override
+    public ResetPasswordResponseStatus resetUserPassword(String token,String password) {
+
+        ForgetPasswordToken forgetPasswordToken = forgetPasswordTokenRepository.findByToken(token);
+
+
+        if(forgetPasswordToken == null){
+            return ResetPasswordResponseStatus.TOKEN_NOT_FOUND;
+        }
+
+        if(!forgetPasswordToken.getToken().equals(token)){
+            return ResetPasswordResponseStatus.INVALID;
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        if((forgetPasswordToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <=0){
+            forgetPasswordTokenRepository.delete(forgetPasswordToken);
+            return ResetPasswordResponseStatus.EXPIRED;
+        }
+
+        User user = forgetPasswordToken.getUser();
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+        return ResetPasswordResponseStatus.SUCCESS;
     }
 
 }

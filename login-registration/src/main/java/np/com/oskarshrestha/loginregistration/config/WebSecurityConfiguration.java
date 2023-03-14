@@ -17,7 +17,9 @@ public class WebSecurityConfiguration {
             "/api/v1/auth/register",
             "/api/v1/auth/authenticate",
             "/api/v1/auth/verifyEmail",
-            "/api/v1/auth/resendEmailVerification"
+            "/api/v1/auth/resendEmailVerification",
+            "/api/v1/auth/forgetPassword",
+            "/api/v1/auth/resetPassword"
     };
 
     @Autowired
