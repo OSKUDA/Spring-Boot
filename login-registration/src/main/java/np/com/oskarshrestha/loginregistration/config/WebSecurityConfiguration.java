@@ -16,7 +16,8 @@ public class WebSecurityConfiguration {
     private static final String[] WHITE_LIST_URLS = {
             "/api/v1/auth/register",
             "/api/v1/auth/authenticate",
-            "/api/v1/auth/verifyEmail"
+            "/api/v1/auth/verifyEmail",
+            "/api/v1/auth/resendEmailVerification"
     };
 
     @Autowired

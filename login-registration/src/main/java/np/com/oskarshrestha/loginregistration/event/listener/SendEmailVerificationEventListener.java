@@ -1,7 +1,7 @@
 package np.com.oskarshrestha.loginregistration.event.listener;
 
 import np.com.oskarshrestha.loginregistration.entity.User;
-import np.com.oskarshrestha.loginregistration.event.RegistrationCompleteEvent;
+import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
 import np.com.oskarshrestha.loginregistration.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-public class RegistrationCompleteEventListener implements ApplicationListener<RegistrationCompleteEvent> {
+public class SendEmailVerificationEventListener implements ApplicationListener<SendEmailVerificationEvent> {
 
     @Autowired
     private UserService userService;
 
     @Override
-    public void onApplicationEvent(RegistrationCompleteEvent event) {
+    public void onApplicationEvent(SendEmailVerificationEvent event) {
         // create the verification token for the user with link
         User user = event.getUser();
         String token = UUID.randomUUID().toString();

@@ -35,6 +35,10 @@ public class EmailVerificationToken {
         this.expirationTime = calculateExpirationTime(EXPIRATION_TIME);
     }
 
+    public void setExpirationTime() {
+        this.expirationTime = calculateExpirationTime(EXPIRATION_TIME);
+    }
+
     private Date calculateExpirationTime(int expirationTime) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(new Date().getTime());

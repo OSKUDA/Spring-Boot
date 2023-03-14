@@ -2,15 +2,17 @@ package np.com.oskarshrestha.loginregistration.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import np.com.oskarshrestha.loginregistration.entity.User;
-import np.com.oskarshrestha.loginregistration.event.RegistrationCompleteEvent;
+import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.service.UserService;
 import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
+import np.com.oskarshrestha.loginregistration.util.ResendVerifyEmailStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 public class AuthenticationController {
@@ -25,42 +27,36 @@ public class AuthenticationController {
     public ResponseEntity<RegistrationResponse> registerUser(
             @RequestBody UserRegisterRequest userRegisterRequest,
             final HttpServletRequest request
-            ) {
+    ) {
         RegistrationResponse registrationResponse = userService.registerUser(userRegisterRequest);
+
+        // check if the user has already registered
+        if (registrationResponse.isExistingUser()) {
+            return ResponseEntity.ok(registrationResponse);
+        }
+
+        // continue creating user
         User user = registrationResponse.getUser();
         System.out.println(applicationEventPublisher.toString());
-        applicationEventPublisher.publishEvent(new RegistrationCompleteEvent(
-                user,
-                generateApplicationUrl(request)
-        ));
-        System.out.println("Event sent");
+        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(user, generateApplicationUrl(request)));
+
         return ResponseEntity.ok(registrationResponse);
     }
 
     @GetMapping("/api/v1/auth/verifyEmail")
-    public ResponseEntity<VerifyRegistrationResponse> verifyRegistration(@RequestParam("token") String token){
+    public ResponseEntity<VerifyEmailResponse> verifyEmail(
+            @RequestParam("token") String token
+    ) {
         EmailVerificationTokenStatus status = userService.verifyEmailToken(token);
-        switch (status){
+        switch (status) {
             case VALID -> {
-                return ResponseEntity.ok(VerifyRegistrationResponse
-                        .builder()
-                        .emailVerificationTokenStatus(EmailVerificationTokenStatus.VALID)
-                        .build()
-                );
+                return ResponseEntity.ok(VerifyEmailResponse.builder().emailVerificationTokenStatus(EmailVerificationTokenStatus.VALID).build());
             }
             case INVALID -> {
-                return ResponseEntity.ok(VerifyRegistrationResponse
-                        .builder()
-                        .emailVerificationTokenStatus(EmailVerificationTokenStatus.INVALID)
-                        .build()
-                );
+                return ResponseEntity.ok(VerifyEmailResponse.builder().emailVerificationTokenStatus(EmailVerificationTokenStatus.INVALID).build());
             }
             case EXPIRED -> {
-                return ResponseEntity.ok(VerifyRegistrationResponse
-                        .builder()
-                        .emailVerificationTokenStatus(EmailVerificationTokenStatus.EXPIRED)
-                        .build()
-                );
+                return ResponseEntity.ok(VerifyEmailResponse.builder().emailVerificationTokenStatus(EmailVerificationTokenStatus.EXPIRED).build());
             }
             default -> {
                 return ResponseEntity.status(404).build();
@@ -68,17 +64,35 @@ public class AuthenticationController {
         }
     }
 
+    @GetMapping("/api/v1/auth/resendEmailVerification")
+    public ResponseEntity<ResendVerifyEmailResponse> resendVerifyEmail(
+            @RequestParam("email") String email,
+            final HttpServletRequest request
+    ) {
+
+        Optional<User> user = userService.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.ok(ResendVerifyEmailResponse.builder().resendVerifyEmailStatus(ResendVerifyEmailStatus.EMAIL_NOT_REGISTERED).build());
+        }
+
+        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
+                user.get(),
+                generateApplicationUrl(request)
+                )
+        );
+        return ResponseEntity.ok(ResendVerifyEmailResponse.builder().resendVerifyEmailStatus(ResendVerifyEmailStatus.SUCCESS).build());
+    }
+
 
     @PostMapping("/api/v1/auth/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticateUser(@RequestBody UserAuthenticationRequest userAuthenticationRequest) {
+    public ResponseEntity<AuthenticationResponse> authenticateUser(
+            @RequestBody UserAuthenticationRequest userAuthenticationRequest
+    ) {
         return ResponseEntity.ok(userService.authenticate(userAuthenticationRequest));
     }
 
     private String generateApplicationUrl(HttpServletRequest request) {
-        return "http://" +
-                request.getServerName() +
-                ":" +
-                request.getServerPort() +
-                request.getContextPath();
+        return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
     }
 }

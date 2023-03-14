@@ -13,11 +13,12 @@ import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.util.Calendar;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -39,6 +40,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RegistrationResponse registerUser(UserRegisterRequest userRegisterRequest) {
+        if(userRepository.existsByEmail(userRegisterRequest.getEmail())){
+         return RegistrationResponse.builder().existingUser(true).build();
+        }
+
         User user = new User();
         user.setFirstName(userRegisterRequest.getFirstName());
         user.setLastName(userRegisterRequest.getLastName());
@@ -76,7 +81,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void saveVerificationTokenForUser(String token, User user) {
-        EmailVerificationToken emailVerificationToken = new EmailVerificationToken(user, token);
+        EmailVerificationToken emailVerificationToken = emailVerificationTokenRepository.findByUser(user);
+
+        // create new entry
+        if(emailVerificationToken == null){
+            emailVerificationToken = new EmailVerificationToken(user, token);
+            emailVerificationTokenRepository.save(emailVerificationToken);
+            return;
+        }
+
+        // update existing entry
+        emailVerificationToken.setToken(token);
+        emailVerificationToken.setExpirationTime();
         emailVerificationTokenRepository.save(emailVerificationToken);
     }
 
@@ -100,4 +116,10 @@ public class UserServiceImpl implements UserService {
 
         return EmailVerificationTokenStatus.VALID;
     }
+
+    @Override
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
 }

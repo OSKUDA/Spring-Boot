@@ -1,6 +1,5 @@
 package np.com.oskarshrestha.loginregistration.service;
 
-import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
 import np.com.oskarshrestha.loginregistration.entity.User;
 import np.com.oskarshrestha.loginregistration.model.AuthenticationResponse;
 import np.com.oskarshrestha.loginregistration.model.RegistrationResponse;
@@ -18,4 +17,6 @@ public interface UserService {
     public void saveVerificationTokenForUser(String token, User user);
 
     public EmailVerificationTokenStatus verifyEmailToken(String token);
+
+    public Optional<User> getUserByEmail(String email);
 }
