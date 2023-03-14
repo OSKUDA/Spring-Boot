@@ -5,6 +5,7 @@ import np.com.oskarshrestha.loginregistration.entity.User;
 import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.service.UserService;
+import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
 import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
 import np.com.oskarshrestha.loginregistration.util.ResendVerifyEmailStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,22 @@ public class AuthenticationController {
             @RequestBody UserAuthenticationRequest userAuthenticationRequest
     ) {
         return ResponseEntity.ok(userService.authenticate(userAuthenticationRequest));
+    }
+
+    @PostMapping("/api/v1/auth/changePassword")
+    public ResponseEntity<ChangePasswordResponse> changePassword(
+            @RequestBody ChangePasswordRequest changePasswordRequest
+    ){
+        ChangeUserPasswordStatus changeUserPasswordStatus = userService.changeUserPassword(
+                changePasswordRequest.getEmail(),
+                changePasswordRequest.getOldPassword(),
+                changePasswordRequest.getNewPassword()
+        );
+        return ResponseEntity.ok(ChangePasswordResponse
+                .builder()
+                .changeUserPasswordStatus(changeUserPasswordStatus)
+                .build()
+        );
     }
 
     private String generateApplicationUrl(HttpServletRequest request) {

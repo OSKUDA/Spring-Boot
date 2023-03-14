@@ -1,19 +1,22 @@
 package np.com.oskarshrestha.loginregistration.service;
 
 import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
-import np.com.oskarshrestha.loginregistration.model.*;
-import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
-import np.com.oskarshrestha.loginregistration.util.Role;
 import np.com.oskarshrestha.loginregistration.entity.User;
+import np.com.oskarshrestha.loginregistration.model.AuthenticationResponse;
+import np.com.oskarshrestha.loginregistration.model.RegisterUserResponse;
+import np.com.oskarshrestha.loginregistration.model.UserAuthenticationRequest;
+import np.com.oskarshrestha.loginregistration.model.UserRegisterRequest;
 import np.com.oskarshrestha.loginregistration.repository.EmailVerificationTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
+import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
+import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
+import np.com.oskarshrestha.loginregistration.util.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.Calendar;
 import java.util.Optional;
 
@@ -37,11 +40,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RegisterUserResponse registerUser(UserRegisterRequest userRegisterRequest) {
-        if(userRepository.existsByEmail(userRegisterRequest.getEmail())){
-         return RegisterUserResponse
-                 .builder()
-                 .existingUser(true)
-                 .build();
+        if (userRepository.existsByEmail(userRegisterRequest.getEmail())) {
+            return RegisterUserResponse
+                    .builder()
+                    .existingUser(true)
+                    .build();
         }
 
         User user = new User();
@@ -51,9 +54,7 @@ public class UserServiceImpl implements UserService {
         user.setRole(Role.USER);
         user.setPassword(passwordEncoder.encode(userRegisterRequest.getPassword()));
         user.setEnabled(false);
-
         userRepository.save(user);
-
         String jwtToken = jwtService.generateToken(user);
 
         return RegisterUserResponse
@@ -85,7 +86,7 @@ public class UserServiceImpl implements UserService {
         EmailVerificationToken emailVerificationToken = emailVerificationTokenRepository.findByUser(user);
 
         // create new entry
-        if(emailVerificationToken == null){
+        if (emailVerificationToken == null) {
             emailVerificationToken = new EmailVerificationToken(user, token);
             emailVerificationTokenRepository.save(emailVerificationToken);
             return;
@@ -101,13 +102,13 @@ public class UserServiceImpl implements UserService {
     public EmailVerificationTokenStatus verifyEmailToken(String token) {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token);
 
-        if(verificationToken == null){
+        if (verificationToken == null) {
             return EmailVerificationTokenStatus.INVALID;
         }
 
         User user = verificationToken.getUser();
         Calendar calendar = Calendar.getInstance();
-        if((verificationToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <= 0){
+        if ((verificationToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <= 0) {
             emailVerificationTokenRepository.delete(verificationToken);
             return EmailVerificationTokenStatus.EXPIRED;
         }
@@ -121,6 +122,24 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public ChangeUserPasswordStatus changeUserPassword(String email, String oldPassword, String newPassword) {
+        // check if old password matches the email
+        Optional<User> user = userRepository.findByEmail(email);
+
+        if (user.isEmpty()) {
+            return ChangeUserPasswordStatus.EMAIL_NOT_FOUND;
+        }
+
+        if (!passwordEncoder.matches(oldPassword, user.get().getPassword())) {
+            return ChangeUserPasswordStatus.PASSWORD_MISMATCH;
+        }
+
+        user.get().setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user.get());
+        return ChangeUserPasswordStatus.SUCCESS;
     }
 
 }
