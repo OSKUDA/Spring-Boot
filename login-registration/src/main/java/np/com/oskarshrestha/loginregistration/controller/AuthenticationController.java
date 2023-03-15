@@ -1,18 +1,14 @@
 package np.com.oskarshrestha.loginregistration.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import np.com.oskarshrestha.loginregistration.entity.User;
-import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
-import np.com.oskarshrestha.loginregistration.event.SendForgetPasswordEmailEvent;
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.service.UserService;
-import np.com.oskarshrestha.loginregistration.util.*;
+import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
+import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
+import np.com.oskarshrestha.loginregistration.util.ResetPasswordResponseStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 public class AuthenticationController {
@@ -20,39 +16,13 @@ public class AuthenticationController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
 
     @PostMapping("/api/v1/auth/register")
     public ResponseEntity<RegistrationResponse> registerUser(
             @RequestBody UserRegisterRequest userRegisterRequest,
             final HttpServletRequest request
     ) {
-        RegisterUserResponse registerUserResponse = userService.registerUser(userRegisterRequest);
-
-        // check if the user has already registered
-        if (registerUserResponse.isExistingUser()) {
-            return ResponseEntity.ok(RegistrationResponse
-                    .builder()
-                    .existingUser(true)
-                    .build()
-            );
-        }
-
-        // continue creating user
-        User user = registerUserResponse.getUser();
-        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
-                user,
-                generateApplicationUrl(request)
-        ));
-
-        return ResponseEntity.ok(RegistrationResponse
-                .builder()
-                .registrationSuccess(true)
-                .existingUser(false)
-                .build()
-        );
-
+        return ResponseEntity.ok(userService.registerUser(userRegisterRequest, request));
     }
 
     @GetMapping("/api/v1/auth/verifyEmail")
@@ -81,19 +51,7 @@ public class AuthenticationController {
             @RequestParam("email") String email,
             final HttpServletRequest request
     ) {
-
-        Optional<User> user = userService.getUserByEmail(email);
-
-        if (user.isEmpty()) {
-            return ResponseEntity.ok(ResendVerifyEmailResponse.builder().resendVerifyEmailStatus(ResendVerifyEmailStatus.EMAIL_NOT_REGISTERED).build());
-        }
-
-        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
-                        user.get(),
-                        generateApplicationUrl(request)
-                )
-        );
-        return ResponseEntity.ok(ResendVerifyEmailResponse.builder().resendVerifyEmailStatus(ResendVerifyEmailStatus.SUCCESS).build());
+        return ResponseEntity.ok(userService.resendVerificationEmail(email, request));
     }
 
 
@@ -125,26 +83,7 @@ public class AuthenticationController {
             @RequestParam("email") String email,
             final HttpServletRequest request
     ) {
-        Optional<User> user = userService.getUserByEmail(email);
-
-        if (user.isEmpty()) {
-            return ResponseEntity.ok(ForgetPasswordResponse
-                    .builder()
-                    .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.EMAIL_NOT_FOUND)
-                    .build()
-            );
-        }
-
-        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
-                user.get(),
-                generateApplicationUrl(request)
-        ));
-
-        return ResponseEntity.ok(ForgetPasswordResponse
-                .builder()
-                .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.SENT)
-                .build()
-        );
+        return ResponseEntity.ok(userService.forgetPassword(email, request));
     }
 
     @PostMapping("/api/v1/auth/resetPassword")
@@ -165,30 +104,7 @@ public class AuthenticationController {
             @RequestParam("email") String email,
             final HttpServletRequest request
     ) {
-        Optional<User> user = userService.getUserByEmail(email);
-
-        if (user.isEmpty()) {
-            return ResponseEntity.ok(ResendForgetPasswordEmailResponse
-                    .builder()
-                    .resendForgetPasswordEmailStatus(
-                            ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED
-                    )
-                    .build()
-            );
-        }
-
-        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
-                user.get(),
-                generateApplicationUrl(request)
-        ));
-        return ResponseEntity.ok(ResendForgetPasswordEmailResponse
-                .builder()
-                .resendForgetPasswordEmailStatus(ResendForgetPasswordEmailStatus.SENT)
-                .build()
-        );
+        return ResponseEntity.ok(userService.resetForgetPasswordEmail(email, request));
     }
 
-    private String generateApplicationUrl(HttpServletRequest request) {
-        return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
-    }
 }

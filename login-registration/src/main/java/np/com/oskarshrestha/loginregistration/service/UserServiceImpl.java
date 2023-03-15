@@ -1,20 +1,21 @@
 package np.com.oskarshrestha.loginregistration.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
 import np.com.oskarshrestha.loginregistration.entity.ForgetPasswordToken;
 import np.com.oskarshrestha.loginregistration.entity.User;
-import np.com.oskarshrestha.loginregistration.model.AuthenticationResponse;
-import np.com.oskarshrestha.loginregistration.model.RegisterUserResponse;
-import np.com.oskarshrestha.loginregistration.model.UserAuthenticationRequest;
-import np.com.oskarshrestha.loginregistration.model.UserRegisterRequest;
+import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
+import np.com.oskarshrestha.loginregistration.event.SendForgetPasswordEmailEvent;
+import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.repository.EmailVerificationTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.ForgetPasswordTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import np.com.oskarshrestha.loginregistration.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -42,12 +43,19 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
     @Override
-    public RegisterUserResponse registerUser(UserRegisterRequest userRegisterRequest) {
+    public RegistrationResponse registerUser(
+            UserRegisterRequest userRegisterRequest,
+            final HttpServletRequest request
+    ) {
         if (userRepository.existsByEmail(userRegisterRequest.getEmail())) {
-            return RegisterUserResponse
+            return RegistrationResponse
                     .builder()
                     .existingUser(true)
+                    .registrationSuccess(false)
                     .build();
         }
 
@@ -59,13 +67,16 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(userRegisterRequest.getPassword()));
         user.setEnabled(false);
         userRepository.save(user);
-        String jwtToken = jwtService.generateToken(user);
 
-        return RegisterUserResponse
+        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
+                user,
+                generateApplicationUrl(request)
+        ));
+
+        return RegistrationResponse
                 .builder()
-                .token(jwtToken)
-                .user(user)
                 .existingUser(false)
+                .registrationSuccess(true)
                 .build();
     }
 
@@ -119,6 +130,7 @@ public class UserServiceImpl implements UserService {
 
         user.setEnabled(true);
         userRepository.save(user);
+
 
         return EmailVerificationTokenStatus.VALID;
     }
@@ -189,4 +201,85 @@ public class UserServiceImpl implements UserService {
         return ResetPasswordResponseStatus.SUCCESS;
     }
 
+    @Override
+    public ResendVerifyEmailResponse resendVerificationEmail(
+            String email,
+            final HttpServletRequest request
+    ) {
+        Optional<User> user = this.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResendVerifyEmailResponse
+                    .builder()
+                    .resendVerifyEmailStatus(
+                            ResendVerifyEmailStatus.EMAIL_NOT_REGISTERED
+                    )
+                    .build();
+        }
+        applicationEventPublisher.publishEvent(new SendEmailVerificationEvent(
+                        user.get(),
+                        generateApplicationUrl(request)
+                )
+        );
+        return ResendVerifyEmailResponse
+                .builder()
+                .resendVerifyEmailStatus(ResendVerifyEmailStatus.SUCCESS)
+                .build();
+    }
+
+    @Override
+    public ForgetPasswordResponse forgetPassword(
+            String email,
+            final HttpServletRequest request
+    ) {
+        Optional<User> user = this.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ForgetPasswordResponse
+                    .builder()
+                    .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.EMAIL_NOT_FOUND)
+                    .build();
+        }
+
+        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
+                user.get(),
+                generateApplicationUrl(request)
+        ));
+
+        return ForgetPasswordResponse
+                .builder()
+                .forgetPasswordEmailStatus(ForgetPasswordEmailStatus.SENT)
+                .build();
+    }
+
+    @Override
+    public ResendForgetPasswordEmailResponse resetForgetPasswordEmail(
+            String email,
+            HttpServletRequest request
+    ) {
+        Optional<User> user = this.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResendForgetPasswordEmailResponse
+                    .builder()
+                    .resendForgetPasswordEmailStatus(
+                            ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED
+                    )
+                    .build();
+        }
+
+        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
+                user.get(),
+                generateApplicationUrl(request)
+        ));
+
+        return ResendForgetPasswordEmailResponse
+                .builder()
+                .resendForgetPasswordEmailStatus(ResendForgetPasswordEmailStatus.SENT)
+                .build();
+    }
+
+    private String generateApplicationUrl(HttpServletRequest request) {
+        return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+    }
 }
