@@ -52,6 +52,7 @@ public class AuthenticationController {
                 .existingUser(false)
                 .build()
         );
+
     }
 
     @GetMapping("/api/v1/auth/verifyEmail")
@@ -150,11 +151,39 @@ public class AuthenticationController {
     public ResponseEntity<ResetPasswordResponse> resetPassword(
             @RequestParam("token") String token,
             @RequestBody ResetPasswordRequest resetPasswordRequest
-    ){
-        ResetPasswordResponseStatus resetPasswordResponseStatus = userService.resetUserPassword(token,resetPasswordRequest.getPassword());
+    ) {
+        ResetPasswordResponseStatus resetPasswordResponseStatus = userService.resetUserPassword(token, resetPasswordRequest.getPassword());
         return ResponseEntity.ok(ResetPasswordResponse
                 .builder()
                 .resetPasswordResponseStatus(resetPasswordResponseStatus)
+                .build()
+        );
+    }
+
+    @GetMapping("/api/v1/auth/resendForgetPasswordEmail")
+    public ResponseEntity<ResendForgetPasswordEmailResponse> resetForgetPasswordEmail(
+            @RequestParam("email") String email,
+            final HttpServletRequest request
+    ) {
+        Optional<User> user = userService.getUserByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.ok(ResendForgetPasswordEmailResponse
+                    .builder()
+                    .resendForgetPasswordEmailStatus(
+                            ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED
+                    )
+                    .build()
+            );
+        }
+
+        applicationEventPublisher.publishEvent(new SendForgetPasswordEmailEvent(
+                user.get(),
+                generateApplicationUrl(request)
+        ));
+        return ResponseEntity.ok(ResendForgetPasswordEmailResponse
+                .builder()
+                .resendForgetPasswordEmailStatus(ResendForgetPasswordEmailStatus.SENT)
                 .build()
         );
     }

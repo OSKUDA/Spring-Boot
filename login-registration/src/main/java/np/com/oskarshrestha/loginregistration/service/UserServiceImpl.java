@@ -14,6 +14,7 @@ import np.com.oskarshrestha.loginregistration.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -155,12 +156,12 @@ public class UserServiceImpl implements UserService {
             forgetPasswordTokenRepository.save(forgetPasswordToken);
             return;
         }
-
-        // update existing entry
-        forgetPasswordToken.setToken(token);
-        forgetPasswordToken.setExpirationTime();
-        forgetPasswordTokenRepository.save(forgetPasswordToken);
+            // update existing entry
+            forgetPasswordToken.setToken(token);
+            forgetPasswordToken.setExpirationTime();
+            forgetPasswordTokenRepository.save(forgetPasswordToken);
     }
+
 
     @Override
     public ResetPasswordResponseStatus resetUserPassword(String token,String password) {
