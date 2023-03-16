@@ -11,7 +11,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -33,6 +35,17 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("id", getId());
+        map.put("firstName", getFirstName());
+        map.put("email", getEmail());
+        map.put("password", getPassword());
+        map.put("enabled", isEnabled());
+        map.put("role", getRole());
+        return map;
     }
 
     @Override
