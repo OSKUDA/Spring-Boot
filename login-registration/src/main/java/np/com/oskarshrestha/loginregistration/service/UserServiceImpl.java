@@ -89,7 +89,7 @@ public class UserServiceImpl implements UserService {
                 )
         );
         User user = userRepository.findByEmail(userAuthenticationRequest.getEmail()).orElseThrow();
-        String jwtToken = jwtService.generateToken(user);
+        String jwtToken = jwtService.generateToken(user.toMap(),user);
         return AuthenticationResponse
                 .builder()
                 .token(jwtToken)
