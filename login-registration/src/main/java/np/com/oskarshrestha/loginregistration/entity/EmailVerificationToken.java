@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
