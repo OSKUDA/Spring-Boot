@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
@@ -26,9 +27,15 @@ class EmailVerificationTokenRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    private User user;
+    private EmailVerificationToken emailVerificationToken;
+
+    @Autowired
+    private TestEntityManager testEntityManager;
+
     @BeforeEach
     void setUp() {
-       User user = User
+        user = userRepository.save(User
                 .builder()
                 .email("hi@gmail.com")
                 .enabled(true)
@@ -36,16 +43,14 @@ class EmailVerificationTokenRepositoryTest {
                 .lastName("Shrestha")
                 .role(Role.USER)
                 .password("$someEncodedLongString")
-                .build();
-        userRepository.save(user);
-        EmailVerificationToken emailVerificationToken = EmailVerificationToken
+                .build()
+        );
+        emailVerificationToken = emailVerificationTokenRepository.save(EmailVerificationToken
                 .builder()
                 .token("123")
                 .expirationTime(calculateExpirationTime(10))
                 .user(user)
-                .build();
-
-        emailVerificationTokenRepository.save(emailVerificationToken);
+                .build());
     }
 
     @Test
@@ -62,10 +67,33 @@ class EmailVerificationTokenRepositoryTest {
         assertNull(fetchData);
     }
 
+    @Test
+    public void whenValidUser_returnValidEmailVerificationToken(){
+        User userToTest = user;
+        EmailVerificationToken fetchData = emailVerificationTokenRepository.findByUser(userToTest);
+        assertEquals(userToTest, fetchData.getUser());
+    }
+
+    @Test
+    public void whenInvalidUser_returnNull(){
+        User userToTest = User
+                .builder()
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("oskar@gmail.com")
+                .role(Role.USER)
+                .password("{noon}password")
+                .enabled(true)
+                .build();
+        userRepository.save(userToTest);
+        EmailVerificationToken fetchData = emailVerificationTokenRepository.findByUser(userToTest);
+        assertNull(fetchData);
+    }
+
     private Date calculateExpirationTime(int expirationTime) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(new Date().getTime());
         calendar.add(Calendar.MINUTE, expirationTime);
         return new Date(calendar.getTime().getTime());
     }
-}
+};
