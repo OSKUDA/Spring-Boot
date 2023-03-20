@@ -22,7 +22,7 @@ public interface UserService {
 
     public ChangeUserPasswordStatus changeUserPassword(String email, String oldPassword, String newPassword);
 
-    public void saveForgetPasswordToken(String token, User user);
+    public void saveForgetPasswordToken(String token, User user) throws Exception;
 
     public ResetPasswordResponseStatus resetUserPassword(String token,String password);
 
