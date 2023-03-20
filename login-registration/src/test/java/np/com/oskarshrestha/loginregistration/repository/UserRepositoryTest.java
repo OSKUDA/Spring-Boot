@@ -5,39 +5,62 @@ import np.com.oskarshrestha.loginregistration.util.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.test.context.ActiveProfiles;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import javax.swing.text.html.Option;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @DataJpaTest
+@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class UserRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private TestEntityManager testEntityManager;
+
     @BeforeEach
     void setUp(){
         User user = User
                 .builder()
                 .email("hi@gmail.com")
-                .id(1L)
                 .enabled(true)
                 .firstName("Hello")
                 .lastName("Shrestha")
                 .role(Role.USER)
                 .password("$someEncodedLongString")
                 .build();
-        testEntityManager.persist(user);
+        userRepository.save(user);
     }
 
     @Test
-    public void whenFindById_thenReturnUser(){
-        User user = userRepository.findById(1L).get();
-        assertEquals("hi@gmail.com", user.getEmail());
+    public void whenValidEmail_returnValidUser(){
+        String emailToTest = "hi@gmail.com";
+        Optional<User> user = userRepository.findByEmail(emailToTest);
+        user.ifPresent(userData -> assertEquals("hi@gmail.com", userData.getEmail()));
+    }
 
+    @Test
+    public void whenInvalidEmail_returnNull(){
+        String emailToTest = "oskar@gmail.com";
+        Optional<User> user = userRepository.findByEmail(emailToTest);
+        assertTrue(user.isEmpty());
+    }
+
+    @Test
+    public void whenValidEmail_returnExistsTrue(){
+        String emailToTest = "hi@gmail.com";
+        assertTrue(userRepository.existsByEmail(emailToTest));
+    }
+
+    @Test
+    public void whenInValidEmail_returnExistsFalse(){
+        String emailToTest = "oskar@gmail.com";
+        assertFalse(userRepository.existsByEmail(emailToTest));
     }
 
 

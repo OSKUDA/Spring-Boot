@@ -13,7 +13,6 @@ import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import np.com.oskarshrestha.loginregistration.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -89,7 +88,7 @@ public class UserServiceImpl implements UserService {
                 )
         );
         User user = userRepository.findByEmail(userAuthenticationRequest.getEmail()).orElseThrow();
-        String jwtToken = jwtService.generateToken(user.toMap(),user);
+        String jwtToken = jwtService.generateToken(user.toMap(), user);
         return AuthenticationResponse
                 .builder()
                 .token(jwtToken)
@@ -150,6 +149,8 @@ public class UserServiceImpl implements UserService {
         }
 
         if (!passwordEncoder.matches(oldPassword, user.get().getPassword())) {
+            System.out.println("oldPassword: " + oldPassword);
+            System.out.println("matcher: " + user.get().getPassword());
             return ChangeUserPasswordStatus.PASSWORD_MISMATCH;
         }
 
@@ -159,38 +160,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void saveForgetPasswordToken(String token, User user) {
+    public void saveForgetPasswordToken(String token, User user) throws NullPointerException {
+        if (user == null || token == null) throw new NullPointerException("null value passed as parameter");
         ForgetPasswordToken forgetPasswordToken = forgetPasswordTokenRepository.findByUser(user);
 
-        // create new entry
-        if(forgetPasswordToken == null){
+        if (forgetPasswordToken == null) {
+            // create new entry
             forgetPasswordToken = new ForgetPasswordToken(user, token);
-            forgetPasswordTokenRepository.save(forgetPasswordToken);
-            return;
-        }
+        } else {
             // update existing entry
             forgetPasswordToken.setToken(token);
             forgetPasswordToken.setExpirationTime();
-            forgetPasswordTokenRepository.save(forgetPasswordToken);
+        }
+        forgetPasswordTokenRepository.save(forgetPasswordToken);
     }
 
 
     @Override
-    public ResetPasswordResponseStatus resetUserPassword(String token,String password) {
+    public ResetPasswordResponseStatus resetUserPassword(String token, String password) {
 
         ForgetPasswordToken forgetPasswordToken = forgetPasswordTokenRepository.findByToken(token);
 
 
-        if(forgetPasswordToken == null){
+        if (forgetPasswordToken == null) {
             return ResetPasswordResponseStatus.TOKEN_NOT_FOUND;
         }
 
-        if(!forgetPasswordToken.getToken().equals(token)){
+        if (!forgetPasswordToken.getToken().equals(token)) {
             return ResetPasswordResponseStatus.INVALID;
         }
 
         Calendar calendar = Calendar.getInstance();
-        if((forgetPasswordToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <=0){
+        if ((forgetPasswordToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <= 0) {
             forgetPasswordTokenRepository.delete(forgetPasswordToken);
             return ResetPasswordResponseStatus.EXPIRED;
         }
