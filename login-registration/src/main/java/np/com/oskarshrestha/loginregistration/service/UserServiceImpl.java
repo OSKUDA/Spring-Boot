@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -87,6 +88,7 @@ public class UserServiceImpl implements UserService {
                         userAuthenticationRequest.getPassword()
                 )
         );
+
         User user = userRepository.findByEmail(userAuthenticationRequest.getEmail()).orElseThrow();
         String jwtToken = jwtService.generateToken(user.toMap(), user);
         return AuthenticationResponse

@@ -8,6 +8,7 @@ import np.com.oskarshrestha.loginregistration.repository.ForgetPasswordTokenRepo
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
 import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
 import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
+import np.com.oskarshrestha.loginregistration.util.ResetPasswordResponseStatus;
 import np.com.oskarshrestha.loginregistration.util.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,9 +25,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.openMocks;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +51,9 @@ class UserServiceTest {
     void setUp() {
         openMocks(this);
     }
+
+
+     // Tests for UserService().findByEmail
 
     @Test
     public void whenValidEmail_thenUserShouldBeFound() {
@@ -82,6 +84,9 @@ class UserServiceTest {
         Optional<User> fetchData = userService.getUserByEmail(emailToTest);
         assertTrue(fetchData.isEmpty());
     }
+
+
+     // Tests for UserService().verifyEmailToken
 
     @Test
     public void whenValidVerifyEmailToken_returnEmailVerificationTokenStatusValid() {
@@ -156,6 +161,9 @@ class UserServiceTest {
         assertEquals(EmailVerificationTokenStatus.INVALID, returnedEmailVerificationTokenStatus);
     }
 
+
+     // Tests for UserService().changeUserPassword
+
     @Test
     public void whenInvalidEmail_returnChangeUserPasswordStatusEmailNotFound() {
         // mock
@@ -219,19 +227,18 @@ class UserServiceTest {
         assertEquals(ChangeUserPasswordStatus.SUCCESS, fetchData);
     }
 
+
+     // Tests for UserService().saveForgetPasswordToken
+
     @Test
-    public void whenUserNull_throwNullPointerException() {
-        assertThrows(NullPointerException.class, () -> {
-            userService.saveForgetPasswordToken("123", null);
-        });
+    public void whenUserNullForgetPasswordToken_throwNullPointerException() {
+        assertThrows(NullPointerException.class, () -> userService.saveForgetPasswordToken("123", null));
     }
 
     @Test
-    public void whenTokenNull_throwNullPointerException() {
-        assertThrows(NullPointerException.class, () -> {
-            userService.saveForgetPasswordToken(null, mock(User.class)
-            );
-        });
+    public void whenTokenNullForgetPasswordToken_throwNullPointerException() {
+        assertThrows(NullPointerException.class, () -> userService.saveForgetPasswordToken(null, mock(User.class)
+        ));
     }
 
     @Test
@@ -244,7 +251,7 @@ class UserServiceTest {
         Mockito.when(forgetPasswordTokenRepository.findByUser(userToTest)).thenReturn(null);
 
         // call method to test
-        userService.saveForgetPasswordToken(token,userToTest);
+        userService.saveForgetPasswordToken(token, userToTest);
 
         // assertions
         ArgumentCaptor<ForgetPasswordToken> captor = ArgumentCaptor.forClass(ForgetPasswordToken.class);
@@ -257,7 +264,7 @@ class UserServiceTest {
     }
 
     @Test
-    public void whenForgetPasswordTokenFound_updateExistingForgetPasswordToken(){
+    public void whenForgetPasswordTokenFound_updateExistingForgetPasswordToken() {
         // arrange
         User userToTest = User
                 .builder()
@@ -276,7 +283,7 @@ class UserServiceTest {
         Mockito.when(forgetPasswordTokenRepository.findByUser(userToTest)).thenReturn(forgetPasswordToken);
 
         // call method to test
-        userService.saveForgetPasswordToken(tokenToTest,userToTest);
+        userService.saveForgetPasswordToken(tokenToTest, userToTest);
 
         ArgumentCaptor<ForgetPasswordToken> captor = ArgumentCaptor.forClass(ForgetPasswordToken.class);
         verify(forgetPasswordTokenRepository).findByUser(userToTest);
@@ -288,5 +295,144 @@ class UserServiceTest {
     }
 
 
+     // Tests for UserService().saveVerificationTokenForUser
 
+
+    @Test
+    public void whenEmailVerificationTokenNotFound_createAndSaveNewEmailVerificationToken() {
+        // arrange
+        User user = mock(User.class);
+        String token = "123";
+
+        // mock
+        Mockito.when(emailVerificationTokenRepository.findByUser(user)).thenReturn(null);
+
+        // call method to test
+        userService.saveVerificationTokenForUser(token, user);
+
+        // assertions
+        ArgumentCaptor<EmailVerificationToken> captor = ArgumentCaptor.forClass(EmailVerificationToken.class);
+        verify(emailVerificationTokenRepository).findByUser(user);
+        verify(emailVerificationTokenRepository).save(captor.capture());
+
+        EmailVerificationToken savedToken = captor.getValue();
+        assertEquals(user, savedToken.getUser());
+        assertEquals(token, savedToken.getToken());
+        assertTrue(savedToken.getExpirationTime().after(new Date()),
+                "Expiration time must be greater than current time"
+        );
+    }
+
+    @Test
+    public void whenEmailVerificationTokenFound_updateExistingEmailVerificationToken(){
+        // arrange
+        User user = mock(User.class);
+        String token = "123";
+        EmailVerificationToken emailVerificationToken = mock(EmailVerificationToken.class);
+
+        // mock
+        Mockito.when(emailVerificationTokenRepository.findByUser(user)).thenReturn(emailVerificationToken);
+
+        // call method to test
+        userService.saveVerificationTokenForUser(token,user);
+
+        // assertions
+        verify(emailVerificationToken).setToken("123");
+        verify(emailVerificationToken).setExpirationTime();
+
+        /*
+         * !! Ask Sundar !!
+         * Do we need to verify which object is getting saved?
+         * If so, how can we do that? Since we are using Mocks of the objects
+         */
+
+//        ArgumentCaptor<EmailVerificationToken> captor = ArgumentCaptor.forClass(EmailVerificationToken.class);
+        verify(emailVerificationTokenRepository).save(any());
+
+//        EmailVerificationToken savedToken = captor.getValue();
+//        System.out.println(savedToken);
+    }
+
+    // Tests for UserService().resetUserPassword
+
+    @Test
+    public void whenForgetPasswordTokenNotFound_returnResetPasswordResponseStatusTokenNotFound(){
+        // arrange
+        String token = "123";
+        String password = "456";
+
+        // mock
+        Mockito.when(forgetPasswordTokenRepository.findByToken(token)).thenReturn(null);
+
+        // call method to test
+        ResetPasswordResponseStatus fetchData = userService.resetUserPassword(token,password);
+
+        // assertions
+        assertEquals(ResetPasswordResponseStatus.TOKEN_NOT_FOUND, fetchData);
+    }
+
+    @Test
+    public void whenInvalidToken_returnResetPasswordResponseStatusInvalid(){
+        // arrange
+        String token = "123";
+        String password = "456";
+//        ForgetPasswordToken forgetPasswordToken = mock(ForgetPasswordToken.class);
+        ForgetPasswordToken forgetPasswordToken = new ForgetPasswordToken();
+        forgetPasswordToken.setToken("456");
+
+
+        // mock
+        Mockito.when(forgetPasswordTokenRepository.findByToken(token)).thenReturn(forgetPasswordToken);
+
+        // call method to test
+        ResetPasswordResponseStatus fetchData = userService.resetUserPassword(token,password);
+
+        // assertions
+        assertEquals(ResetPasswordResponseStatus.INVALID, fetchData);
+        verify(forgetPasswordTokenRepository).findByToken(token);
+    }
+
+    @Test
+    public void whenExpiredToken_returnResetPasswordResponseStatusExpired(){
+        // arrange
+        String token = "123";
+        String password = "456";
+        User user = mock(User.class);
+        ForgetPasswordToken forgetPasswordToken = new ForgetPasswordToken(user, token);
+        forgetPasswordToken.setExpirationTime(new Date());
+
+        // mock
+        Mockito.when(forgetPasswordTokenRepository.findByToken(token)).thenReturn(forgetPasswordToken);
+
+        // call method to test
+        ResetPasswordResponseStatus fetchData = userService.resetUserPassword(token,password);
+
+        // assertions
+        assertEquals(ResetPasswordResponseStatus.EXPIRED, fetchData);
+        verify(forgetPasswordTokenRepository).delete(forgetPasswordToken);
+    }
+
+    @Test
+    public void whenValidToken_returnResetPasswordResponseStatusSuccess(){
+        // arrange
+        String token = "123";
+        String password = "456";
+        User user = new User();
+        ForgetPasswordToken forgetPasswordToken = new ForgetPasswordToken(user, token);
+
+        // mock
+        Mockito.when(forgetPasswordTokenRepository.findByToken(token)).thenReturn(forgetPasswordToken);
+        Mockito.when(passwordEncoder.encode("456")).thenReturn("456");
+
+        // call method to test
+        ResetPasswordResponseStatus fetchData = userService.resetUserPassword(token, password);
+
+        // assertions
+        assertEquals(ResetPasswordResponseStatus.SUCCESS, fetchData);
+        verify(passwordEncoder).encode("456");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals(password, captor.getValue().getPassword());
+    }
 }
