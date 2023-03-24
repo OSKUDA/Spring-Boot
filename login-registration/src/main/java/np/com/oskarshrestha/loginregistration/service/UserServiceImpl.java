@@ -100,7 +100,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public void saveVerificationTokenForUser(String token, User user) {
         EmailVerificationToken emailVerificationToken = emailVerificationTokenRepository.findByUser(user);
-
         // create new entry
         if (emailVerificationToken == null) {
             emailVerificationToken = new EmailVerificationToken(user, token);

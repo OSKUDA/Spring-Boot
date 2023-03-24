@@ -1,15 +1,16 @@
 package np.com.oskarshrestha.loginregistration.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import np.com.oskarshrestha.loginregistration.entity.EmailVerificationToken;
 import np.com.oskarshrestha.loginregistration.entity.ForgetPasswordToken;
 import np.com.oskarshrestha.loginregistration.entity.User;
+import np.com.oskarshrestha.loginregistration.event.SendEmailVerificationEvent;
+import np.com.oskarshrestha.loginregistration.event.SendForgetPasswordEmailEvent;
+import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.repository.EmailVerificationTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.ForgetPasswordTokenRepository;
 import np.com.oskarshrestha.loginregistration.repository.UserRepository;
-import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
-import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
-import np.com.oskarshrestha.loginregistration.util.ResetPasswordResponseStatus;
-import np.com.oskarshrestha.loginregistration.util.Role;
+import np.com.oskarshrestha.loginregistration.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.server.transport.HttpsRedirectWebFilter;
 
 import java.util.Date;
 import java.util.Optional;
@@ -45,6 +48,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
 
     @BeforeEach
@@ -111,6 +117,7 @@ class UserServiceTest {
                         .build();
         Mockito.when(emailVerificationTokenRepository.findByToken("123"))
                 .thenReturn(emailVerificationToken);
+
         user.setEnabled(true);
         Mockito.when(userRepository.save(user)).thenReturn(user);
 
@@ -296,8 +303,6 @@ class UserServiceTest {
 
 
      // Tests for UserService().saveVerificationTokenForUser
-
-
     @Test
     public void whenEmailVerificationTokenNotFound_createAndSaveNewEmailVerificationToken() {
         // arrange
@@ -332,6 +337,7 @@ class UserServiceTest {
 
         // mock
         Mockito.when(emailVerificationTokenRepository.findByUser(user)).thenReturn(emailVerificationToken);
+        Mockito.when(emailVerificationTokenRepository.save(emailVerificationToken)).thenReturn(emailVerificationToken);
 
         // call method to test
         userService.saveVerificationTokenForUser(token,user);
@@ -435,4 +441,233 @@ class UserServiceTest {
         verify(userRepository).save(captor.capture());
         assertEquals(password, captor.getValue().getPassword());
     }
+
+    // Tests for UserService().forgetPassword
+
+    @Test
+    public void whenInvalidUser_returnForgetPasswordResponseWithForgetPasswordEmailStatusEmailNotFound(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // call method to test
+        ForgetPasswordResponse fetchData = userService.forgetPassword(email, httpServletRequest);
+
+        // assertions
+        assertEquals(ForgetPasswordEmailStatus.EMAIL_NOT_FOUND,fetchData.getForgetPasswordEmailStatus());
+        verify(userRepository).findByEmail(email);
+    }
+
+    @Test
+    public void whenValidUser_returnForgetPasswordResponseWithForgetPasswordEmailStatusSent(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+        User user = mock(User.class);
+
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        // call method to test
+        ForgetPasswordResponse fetchData = userService.forgetPassword(email, httpServletRequest);
+
+        // assertions
+        assertEquals(ForgetPasswordEmailStatus.SENT, fetchData.getForgetPasswordEmailStatus());
+        verify(userRepository).findByEmail(email);
+
+        ArgumentCaptor<SendForgetPasswordEmailEvent> captor = ArgumentCaptor.forClass(SendForgetPasswordEmailEvent.class);
+        verify(applicationEventPublisher).publishEvent(captor.capture());
+
+        assertEquals(user, captor.getValue().getUser());
+        assertEquals("http://null:0null", captor.getValue().getApplicationUrl());
+    }
+
+    // Tests for UserService().resetForgetPasswordEmail
+
+    @Test
+    public void whenInvalidUser_returnResendForgetPasswordEmailResponseWithResendForgetPasswordEmailStatusEmailNotFound(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // call method to test
+        ResendForgetPasswordEmailResponse fetchData = userService.resetForgetPasswordEmail(
+                email, httpServletRequest
+        );
+
+        // assertions
+        verify(userRepository).findByEmail(email);
+        assertEquals(ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED, fetchData.getResendForgetPasswordEmailStatus());
+    }
+
+    @Test
+    public void whenValidUser_returnResendForgetPasswordEmailResponseWithResendForgetPasswordEmailStatusSent(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+        User user = User
+                .builder()
+                .id(1L)
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("hi@gmail.com")
+                .password("123")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        // call method to test
+        ResendForgetPasswordEmailResponse fetchData = userService.resetForgetPasswordEmail(
+                email,
+                httpServletRequest
+        );
+
+        // assertions
+        verify(userRepository).findByEmail(email);
+
+        ArgumentCaptor<SendForgetPasswordEmailEvent> captor = ArgumentCaptor.forClass(SendForgetPasswordEmailEvent.class);
+        verify(applicationEventPublisher).publishEvent(captor.capture());
+
+        assertEquals(user, captor.getValue().getUser());
+        assertEquals("http://null:0null", captor.getValue().getApplicationUrl());
+
+        assertEquals(ResendForgetPasswordEmailStatus.SENT, fetchData.getResendForgetPasswordEmailStatus());
+    }
+
+    // Tests for UserService().resendVerificationEmail
+
+    @Test
+    public void whenInvalidUser_returnResendVerifyEmailResponseWithResendVerifyEmailStatusEmailNotRegistered(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // call method to test
+        ResendVerifyEmailResponse fetchData = userService.resendVerificationEmail(
+                email,
+                httpServletRequest
+        );
+
+        // assertions
+        verify(userRepository).findByEmail(email);
+        assertEquals(ResendVerifyEmailStatus.EMAIL_NOT_REGISTERED, fetchData.getResendVerifyEmailStatus());
+    }
+
+    @Test
+    public void whenValidUser_returnResendVerifyEmailResponseWithResendVerifyEmailStatusSuccess(){
+        // arrange
+        String email = "hi@gmail.com";
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+        User user = User
+                .builder()
+                .id(1L)
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("hi@gmail.com")
+                .password("123")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+
+        // mock
+        Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        // call method to test
+        ResendVerifyEmailResponse fetchData = userService.resendVerificationEmail(
+                email,
+                httpServletRequest
+        );
+
+        // assertions
+        verify(userRepository).findByEmail(email);
+
+        ArgumentCaptor<SendEmailVerificationEvent> captor = ArgumentCaptor.forClass(SendEmailVerificationEvent.class);
+        verify(applicationEventPublisher).publishEvent(captor.capture());
+
+        assertEquals(user, captor.getValue().getUser());
+        assertEquals("http://null:0null", captor.getValue().getApplicationUrl());
+    }
+
+    @Test
+    public void whenEmailAlreadyExist_returnRegistrationResponseWithExistingUserTrueAndRegistrationSuccessFalse(){
+        // arrange
+        UserRegisterRequest userRegisterRequest = UserRegisterRequest
+                .builder()
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("hi@gmail.com")
+                .password("123")
+                .build();
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+
+        // mock
+        Mockito.when(userRepository.existsByEmail(userRegisterRequest.getEmail())).thenReturn(true);
+
+        // call method to test
+        RegistrationResponse fetchData = userService.registerUser(userRegisterRequest,httpServletRequest);
+
+        // assertions
+        verify(userRepository).existsByEmail(userRegisterRequest.getEmail());
+        assertTrue(fetchData.isExistingUser());
+        assertFalse(fetchData.isRegistrationSuccess());
+    }
+
+    @Test
+    public void whenEmailIsNew_returnRegistrationResponseWithExistingUserFalseAndRegistrationSuccessTrue(){
+        // arrange
+        UserRegisterRequest userRegisterRequest = UserRegisterRequest
+                .builder()
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("hi@gmail.com")
+                .password("123")
+                .build();
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+
+        // mock
+        Mockito.when(userRepository.existsByEmail(userRegisterRequest.getEmail())).thenReturn(false);
+        Mockito.when(passwordEncoder.encode("123")).thenReturn("123");
+
+        // call method to test
+        RegistrationResponse fetchData = userService.registerUser(
+                userRegisterRequest,
+                httpServletRequest
+        );
+
+        // assertions
+        verify(userRepository).existsByEmail(userRegisterRequest.getEmail());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User createdUser = userCaptor.getValue();
+
+        assertEquals(userRegisterRequest.getEmail(), createdUser.getEmail());
+        assertEquals(userRegisterRequest.getFirstName(), createdUser.getFirstName());
+        assertEquals(userRegisterRequest.getLastName(), createdUser.getLastName());
+        assertEquals(userRegisterRequest.getPassword(), createdUser.getPassword());
+        assertEquals(Role.USER, createdUser.getRole());
+        assertFalse(createdUser.isEnabled());
+
+        ArgumentCaptor<SendEmailVerificationEvent> eventCaptor = ArgumentCaptor.forClass(SendEmailVerificationEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertEquals(createdUser, eventCaptor.getValue().getUser());
+        assertEquals("http://null:0null", eventCaptor.getValue().getApplicationUrl());
+
+        assertFalse(fetchData.isExistingUser());
+        assertTrue(fetchData.isRegistrationSuccess());
+    }
+
+
 }
