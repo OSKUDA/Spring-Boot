@@ -20,10 +20,15 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.transport.HttpsRedirectWebFilter;
 
+import javax.swing.text.html.Option;
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,6 +56,12 @@ class UserServiceTest {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private JwtService jwtService;
 
 
     @BeforeEach
@@ -599,6 +610,7 @@ class UserServiceTest {
         assertEquals("http://null:0null", captor.getValue().getApplicationUrl());
     }
 
+    // Tests for UserService().register
     @Test
     public void whenEmailAlreadyExist_returnRegistrationResponseWithExistingUserTrueAndRegistrationSuccessFalse(){
         // arrange
@@ -669,5 +681,59 @@ class UserServiceTest {
         assertTrue(fetchData.isRegistrationSuccess());
     }
 
+    // Tests for UserService().authenticate
+
+    @Test
+    public void whenCalled_returnAuthenticationResponseWithJwtToken(){
+        // arrange
+        UserAuthenticationRequest userAuthenticationRequest = UserAuthenticationRequest
+                .builder()
+                .email("hi@gmail.com")
+                .password("123")
+                .build();
+        User user = User
+                .builder()
+                .id(1L)
+                .firstName("Oskar")
+                .lastName("Shrestha")
+                .email("hi@gmail.com")
+                .password("123")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+        Authentication authentication = mock(Authentication.class);
+        String validToken = "valid-token";
+        // mock
+        Mockito.when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        Mockito.when(userRepository.findByEmail(userAuthenticationRequest.getEmail())).thenReturn(Optional.of(user));
+        Mockito.when(jwtService.generateToken(user.toMap(),user)).thenReturn(validToken);
+
+        // call method to test
+        AuthenticationResponse fetchData = userService.authenticate(userAuthenticationRequest);
+
+        // assertions
+        verify(userRepository).findByEmail(userAuthenticationRequest.getEmail());
+        verify(jwtService).generateToken(user.toMap(),user);
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        assertEquals(validToken, fetchData.getToken());
+    }
+
+    @Test
+    public void whenInvalidEmail_throwNoSuchElementException(){
+        // arrange
+        UserAuthenticationRequest userAuthenticationRequest = UserAuthenticationRequest
+                .builder()
+                .email("hi@gmail.com")
+                .password("123")
+                .build();
+
+        // mock
+        Mockito.when(userRepository.findByEmail(userAuthenticationRequest.getEmail())).thenReturn(Optional.empty());
+
+        // call method to test
+
+        // assertions
+        assertThrows(NoSuchElementException.class, () -> userService.authenticate(userAuthenticationRequest));
+    }
 
 }
