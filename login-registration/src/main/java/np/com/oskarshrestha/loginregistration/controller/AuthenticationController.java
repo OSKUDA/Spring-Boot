@@ -22,7 +22,13 @@ public class AuthenticationController {
             @RequestBody UserRegisterRequest userRegisterRequest,
             final HttpServletRequest request
     ) {
-        return ResponseEntity.ok(userService.registerUser(userRegisterRequest, request));
+        RegistrationResponse response = userService.registerUser(userRegisterRequest, request);
+        if(response.isRegistrationSuccess()){
+            return ResponseEntity.ok(response);
+
+        }else{
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @GetMapping("/api/v1/auth/verifyEmail")
@@ -41,7 +47,7 @@ public class AuthenticationController {
                 return ResponseEntity.ok(VerifyEmailResponse.builder().emailVerificationTokenStatus(EmailVerificationTokenStatus.EXPIRED).build());
             }
             default -> {
-                return ResponseEntity.status(404).build();
+                return ResponseEntity.badRequest().build();
             }
         }
     }
