@@ -4,4 +4,5 @@ public enum EmailVerificationTokenStatus {
     VALID,
     INVALID,
     EXPIRED,
+    DEFAULT,
 }
