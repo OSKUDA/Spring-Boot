@@ -255,7 +255,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResendForgetPasswordEmailResponse resetForgetPasswordEmail(
+    public ResendForgetPasswordEmailResponse resendForgetPasswordEmail(
             String email,
             HttpServletRequest request
     ) {

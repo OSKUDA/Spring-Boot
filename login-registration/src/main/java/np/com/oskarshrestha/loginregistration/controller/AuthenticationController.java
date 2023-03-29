@@ -106,11 +106,11 @@ public class AuthenticationController {
     }
 
     @GetMapping("/api/v1/auth/resendForgetPasswordEmail")
-    public ResponseEntity<ResendForgetPasswordEmailResponse> resetForgetPasswordEmail(
+    public ResponseEntity<ResendForgetPasswordEmailResponse> resendForgetPasswordEmail(
             @RequestParam("email") String email,
             final HttpServletRequest request
     ) {
-        return ResponseEntity.ok(userService.resetForgetPasswordEmail(email, request));
+        return ResponseEntity.ok(userService.resendForgetPasswordEmail(email, request));
     }
 
 }
