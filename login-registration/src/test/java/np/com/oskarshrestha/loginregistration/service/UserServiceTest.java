@@ -24,9 +24,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.server.transport.HttpsRedirectWebFilter;
 
-import javax.swing.text.html.Option;
 import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -508,7 +506,7 @@ class UserServiceTest {
         Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
         // call method to test
-        ResendForgetPasswordEmailResponse fetchData = userService.resetForgetPasswordEmail(
+        ResendForgetPasswordEmailResponse fetchData = userService.resendForgetPasswordEmail(
                 email, httpServletRequest
         );
 
@@ -536,7 +534,7 @@ class UserServiceTest {
         Mockito.when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         // call method to test
-        ResendForgetPasswordEmailResponse fetchData = userService.resetForgetPasswordEmail(
+        ResendForgetPasswordEmailResponse fetchData = userService.resendForgetPasswordEmail(
                 email,
                 httpServletRequest
         );

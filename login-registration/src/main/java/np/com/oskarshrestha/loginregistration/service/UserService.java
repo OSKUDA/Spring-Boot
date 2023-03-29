@@ -30,5 +30,5 @@ public interface UserService {
 
     public ForgetPasswordResponse forgetPassword(String email,final HttpServletRequest request);
 
-    public ResendForgetPasswordEmailResponse resetForgetPasswordEmail(String email, final HttpServletRequest request);
+    public ResendForgetPasswordEmailResponse resendForgetPasswordEmail(String email, final HttpServletRequest request);
 }

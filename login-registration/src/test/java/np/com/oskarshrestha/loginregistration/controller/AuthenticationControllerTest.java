@@ -2,10 +2,7 @@ package np.com.oskarshrestha.loginregistration.controller;
 
 import np.com.oskarshrestha.loginregistration.model.*;
 import np.com.oskarshrestha.loginregistration.service.UserService;
-import np.com.oskarshrestha.loginregistration.util.ChangeUserPasswordStatus;
-import np.com.oskarshrestha.loginregistration.util.EmailVerificationTokenStatus;
-import np.com.oskarshrestha.loginregistration.util.ForgetPasswordEmailStatus;
-import np.com.oskarshrestha.loginregistration.util.ResendVerifyEmailStatus;
+import np.com.oskarshrestha.loginregistration.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +16,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.net.Authenticator;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -376,4 +374,172 @@ class AuthenticationControllerTest {
         assertEquals(ForgetPasswordEmailStatus.SENT, Objects.requireNonNull(response.getBody()).getForgetPasswordEmailStatus());
         assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
     }
+
+    // tests for AuthenticationController().resetPassword
+
+    @Test
+    public void whenInvalidToken_returnResetPasswordResponseWithResetPasswordResponseStatusTokenNotFound() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String token = "123";
+        ResetPasswordRequest resetPasswordRequest = ResetPasswordRequest.builder().password("123").build();
+
+
+        // mock
+        Mockito.when(userService.resetUserPassword(token, resetPasswordRequest.getPassword())).thenReturn(ResetPasswordResponseStatus.TOKEN_NOT_FOUND);
+
+        // call method to test
+        ResponseEntity<ResetPasswordResponse> response = authenticationController.resetPassword(token, resetPasswordRequest);
+
+        // assertions
+        Mockito.verify(userService).resetUserPassword(token, resetPasswordRequest.getPassword());
+        assertEquals(ResetPasswordResponseStatus.TOKEN_NOT_FOUND, Objects.requireNonNull(response.getBody()).getResetPasswordResponseStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    @Test
+    public void whenTokenExpired_returnResetPasswordResponseWithResetPasswordResponseStatusExpired() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String token = "123";
+        ResetPasswordRequest resetPasswordRequest = ResetPasswordRequest.builder().password("123").build();
+
+
+        // mock
+        Mockito.when(userService.resetUserPassword(token, resetPasswordRequest.getPassword())).thenReturn(ResetPasswordResponseStatus.EXPIRED);
+
+        // call method to test
+        ResponseEntity<ResetPasswordResponse> response = authenticationController.resetPassword(token, resetPasswordRequest);
+
+        // assertions
+        Mockito.verify(userService).resetUserPassword(token, resetPasswordRequest.getPassword());
+        assertEquals(ResetPasswordResponseStatus.EXPIRED, Objects.requireNonNull(response.getBody()).getResetPasswordResponseStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    @Test
+    public void whenInvalidToken_returnResetPasswordResponseWithResetPasswordResponseStatusInvalid() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String token = "123";
+        ResetPasswordRequest resetPasswordRequest = ResetPasswordRequest.builder().password("123").build();
+
+
+        // mock
+        Mockito.when(userService.resetUserPassword(token, resetPasswordRequest.getPassword())).thenReturn(ResetPasswordResponseStatus.INVALID);
+
+        // call method to test
+        ResponseEntity<ResetPasswordResponse> response = authenticationController.resetPassword(token, resetPasswordRequest);
+
+        // assertions
+        Mockito.verify(userService).resetUserPassword(token, resetPasswordRequest.getPassword());
+        assertEquals(ResetPasswordResponseStatus.INVALID, Objects.requireNonNull(response.getBody()).getResetPasswordResponseStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    @Test
+    public void whenValidToken_returnResetPasswordResponseWithResetPasswordResponseStatusSuccess() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String token = "123";
+        ResetPasswordRequest resetPasswordRequest = ResetPasswordRequest.builder().password("123").build();
+
+
+        // mock
+        Mockito.when(userService.resetUserPassword(token, resetPasswordRequest.getPassword())).thenReturn(ResetPasswordResponseStatus.SUCCESS);
+
+        // call method to test
+        ResponseEntity<ResetPasswordResponse> response = authenticationController.resetPassword(token, resetPasswordRequest);
+
+        // assertions
+        Mockito.verify(userService).resetUserPassword(token, resetPasswordRequest.getPassword());
+        assertEquals(ResetPasswordResponseStatus.SUCCESS, Objects.requireNonNull(response.getBody()).getResetPasswordResponseStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    // tests for AuthenticationController().resendForgetPasswordEmail
+
+    @Test
+    public void whenEmailNotFound_returnResendForgetPasswordEmailResponseWithResendForgetPasswordEmailStatusEmailNotRegistered() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String email = "hi@gmail.com";
+
+        // mock
+        Mockito.when(userService.resendForgetPasswordEmail(email, request)).thenReturn(
+                ResendForgetPasswordEmailResponse
+                        .builder()
+                        .resendForgetPasswordEmailStatus(ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED)
+                        .build()
+        );
+
+        // call method to test
+        ResponseEntity<ResendForgetPasswordEmailResponse> response = authenticationController.resendForgetPasswordEmail(email, request);
+
+        // assertions
+        Mockito.verify(userService).resendForgetPasswordEmail(email, request);
+        assertEquals(ResendForgetPasswordEmailStatus.EMAIL_NOT_REGISTERED, Objects.requireNonNull(response.getBody()).getResendForgetPasswordEmailStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    @Test
+    public void whenValidEmail_returnResendForgetPasswordEmailResponseWithResendForgetPasswordEmailStatusSent() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String email = "hi@gmail.com";
+
+        // mock
+        Mockito.when(userService.resendForgetPasswordEmail(email, request)).thenReturn(
+                ResendForgetPasswordEmailResponse
+                        .builder()
+                        .resendForgetPasswordEmailStatus(ResendForgetPasswordEmailStatus.SENT)
+                        .build()
+        );
+
+        // call method to test
+        ResponseEntity<ResendForgetPasswordEmailResponse> response = authenticationController.resendForgetPasswordEmail(email, request);
+
+        // assertions
+        Mockito.verify(userService).resendForgetPasswordEmail(email, request);
+        assertEquals(ResendForgetPasswordEmailStatus.SENT, Objects.requireNonNull(response.getBody()).getResendForgetPasswordEmailStatus());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
+    // tests for AuthenticationController().authenticate
+
+    @Test
+    public void whenValidUser_returnAuthenticationResponseWithToken() {
+        // arrange
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        String token = "123";
+        UserAuthenticationRequest userAuthenticationRequest = UserAuthenticationRequest
+                .builder()
+                .email("hi@gmail.com")
+                .password("123")
+                .build();
+
+        // mock
+        Mockito.when(userService.authenticate(userAuthenticationRequest)).thenReturn(
+                AuthenticationResponse
+                        .builder()
+                        .token(token)
+                        .build()
+        );
+
+        // call method to test
+        ResponseEntity<AuthenticationResponse> response = authenticationController.authenticateUser(userAuthenticationRequest);
+
+        // assertions
+        Mockito.verify(userService).authenticate(userAuthenticationRequest);
+        assertEquals(token, Objects.requireNonNull(response.getBody()).getToken());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
+    }
+
 }
