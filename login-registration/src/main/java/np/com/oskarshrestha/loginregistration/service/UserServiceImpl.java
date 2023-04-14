@@ -82,19 +82,25 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public AuthenticationResponse authenticate(UserAuthenticationRequest userAuthenticationRequest) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        userAuthenticationRequest.getEmail(),
-                        userAuthenticationRequest.getPassword()
-                )
-        );
-
-        User user = userRepository.findByEmail(userAuthenticationRequest.getEmail()).orElseThrow();
-        String jwtToken = jwtService.generateToken(user.toMap(), user);
-        return AuthenticationResponse
-                .builder()
-                .token(jwtToken)
-                .build();
+       try{
+           User user = userRepository.findByEmail(userAuthenticationRequest.getEmail()).orElseThrow();
+           authenticationManager.authenticate(
+                   new UsernamePasswordAuthenticationToken(
+                           userAuthenticationRequest.getEmail(),
+                           userAuthenticationRequest.getPassword()
+                   )
+           );
+           String jwtToken = jwtService.generateToken(user.toMap(), user);
+           return AuthenticationResponse
+                   .builder()
+                   .token(jwtToken)
+                   .build();
+       }catch(Exception e){
+           return AuthenticationResponse
+                   .builder()
+                   .token("not-valid")
+                   .build();
+       }
     }
 
     @Override
