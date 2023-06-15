@@ -31,7 +31,7 @@ Following endpoints are available
 
 - POST  "/api/v1/auth/resetPassword"
 
-**Prerequisites**
+# Prerequisites
 
 Before getting started with the Login-Registration REST API application, ensure that you have the following prerequisites installed:
 
