@@ -31,6 +31,22 @@ Following endpoints are available
 
 - POST  "/api/v1/auth/resetPassword"
 
+**Prerequisites**
+
+Before getting started with the Login-Registration REST API application, ensure that you have the following prerequisites installed:
+
+1. **Java Development Kit (JDK):** Ensure that you have Java JDK 17 or above installed on your system. You can download the JDK from the official Oracle website or use a package manager specific to your operating system.
+
+2. **Maven:** Maven is a build automation tool used for managing dependencies and building Java projects. Install Maven by following the instructions provided on the Apache Maven website or use a package manager suitable for your operating system.
+
+3. **Database System:** The application requires a compatible database system to store user information. Ensure that you have a MySQL set up and accessible. Make a note of the database connection details such as URL, username, and password.
+
+4. **API Testing Tool:** You will need an API testing tool to interact with the API endpoints. Postman is a popular choice and can be downloaded and installed from the Postman website. Alternatively, you can use cURL or any other API testing tool of your preference.
+
+5. **Text Editor or Integrated Development Environment (IDE):** You should have a text editor or an IDE installed on your system to view and modify the project files. Some popular options include Visual Studio Code, IntelliJ IDEA, and Eclipse.
+
+Once you have these prerequisites fulfilled, you can proceed with the getting started section of the Login-Registration REST API application.
+
 # Getting Started
 
 To get started with the Login-Registration REST API application, follow the steps below:
