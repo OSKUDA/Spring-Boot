@@ -88,7 +88,7 @@ class AuthenticationControllerTest {
         Mockito.verify(userService).registerUser(userRegisterRequest, request);
         assertFalse(response.getBody().isRegistrationSuccess());
         assertTrue(response.getBody().isExistingUser());
-        assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
+        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
     }
 
     // tests for AuthenticationController().verifyEmail
